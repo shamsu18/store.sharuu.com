@@ -7,6 +7,8 @@ React + JavaScript storefront and admin panel with a Node.js + Express + MySQL b
 - Homepage New Arrivals is now an admin-controlled model/campaign image gallery, not product cards.
 - Global route scroll restoration opens product/category/pages at the top.
 - Facebook, Instagram and WhatsApp links in desktop footer and mobile menu.
+- Admin Settings supports adding, disabling and removing any number of social links.
+- Product images can be added either by device upload or direct HTTP/HTTPS image URL.
 - Smaller laptop/desktop primary product image with hover zoom.
 - Checkout quantity controls and selected Color/Size/Age display.
 - Required checkout fields: name, address, phone, shipping area and payment method.
@@ -54,6 +56,16 @@ npm run db:migrate:v5
 ```
 
 This keeps existing products and orders, adds any required V5 order token field, and merges missing footer/social/model-gallery settings.
+
+For a database where the original V5 SQL is already imported, the optional
+idempotent SQL upgrade for dynamic social links and image URLs is:
+
+```text
+server/sql/2026-07-26-dynamic-socials-product-image-url.sql
+```
+
+It does not add or replace tables/columns; both features use the existing JSON
+data fields.
 
 ## Build verification
 

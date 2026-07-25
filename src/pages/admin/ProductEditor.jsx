@@ -155,6 +155,9 @@ export default function ProductEditor() {
   const [uploading, setUploading] =
     useState(false);
 
+  const [imageUrl, setImageUrl] =
+    useState('');
+
   const [error, setError] =
     useState('');
 
@@ -262,6 +265,76 @@ export default function ProductEditor() {
   };
 
   /**
+   * Uploaded files এবং direct URL—দুটোকেই একই media
+   * structure-এ যোগ করে, যাতে save/primary/delete behavior
+   * সব source-এর জন্য একই থাকে।
+   */
+  const appendMediaUrls = (urls) => {
+    setProduct((previous) => {
+      const oldMedia = normalizeMedia(
+        previous.media || [],
+      );
+
+      const existingUrls = new Set(
+        oldMedia.map((item) =>
+          String(item.url).trim(),
+        ),
+      );
+
+      const uniqueUrls = urls
+        .map((url) => String(url || '').trim())
+        .filter(
+          (url) =>
+            url && !existingUrls.has(url),
+        );
+
+      const alreadyHasPrimary =
+        oldMedia.some(
+          (item) => item.isPrimary,
+        );
+
+      const newMedia = uniqueUrls.map(
+        (url, index) => ({
+          id: makeId('media'),
+          url,
+          altText:
+            previous.name ||
+            'Product image',
+          type: 'image',
+          isPrimary:
+            !alreadyHasPrimary &&
+            oldMedia.length === 0 &&
+            index === 0,
+          sortOrder:
+            oldMedia.length + index,
+        }),
+      );
+
+      const updatedMedia =
+        normalizeMedia([
+          ...oldMedia,
+          ...newMedia,
+        ]);
+
+      const primaryImage =
+        updatedMedia.find(
+          (item) => item.isPrimary,
+        )?.url ||
+        updatedMedia[0]?.url ||
+        '';
+
+      return {
+        ...previous,
+        media: updatedMedia,
+        image: primaryImage,
+        images: updatedMedia.map(
+          (item) => item.url,
+        ),
+      };
+    });
+  };
+
+  /**
    * Upload images
    */
   const upload = async (files) => {
@@ -281,61 +354,11 @@ export default function ProductEditor() {
           Array.from(files),
         );
 
-      setProduct((previous) => {
-        const oldMedia =
-          normalizeMedia(
-            previous.media || [],
-          );
-
-        const alreadyHasPrimary =
-          oldMedia.some(
-            (item) => item.isPrimary,
-          );
-
-        const newMedia = uploaded
+      appendMediaUrls(
+        uploaded
           .filter((item) => item?.url)
-          .map((item, index) => ({
-            id: makeId('media'),
-            url: item.url,
-            altText:
-              previous.name ||
-              'Product image',
-            type: 'image',
-
-            isPrimary:
-              !alreadyHasPrimary &&
-              oldMedia.length === 0 &&
-              index === 0,
-
-            sortOrder:
-              oldMedia.length + index,
-          }));
-
-        const updatedMedia =
-          normalizeMedia([
-            ...oldMedia,
-            ...newMedia,
-          ]);
-
-        const primaryImage =
-          updatedMedia.find(
-            (item) => item.isPrimary,
-          )?.url ||
-          updatedMedia[0]?.url ||
-          '';
-
-        return {
-          ...previous,
-          media: updatedMedia,
-
-          // Product details/card compatibility
-          image: primaryImage,
-
-          images: updatedMedia.map(
-            (item) => item.url,
-          ),
-        };
-      });
+          .map((item) => item.url),
+      );
     } catch (requestError) {
       setError(
         requestError?.message ||
@@ -344,6 +367,46 @@ export default function ProductEditor() {
     } finally {
       setUploading(false);
     }
+  };
+
+  const addImageUrl = () => {
+    const value = imageUrl.trim();
+
+    try {
+      const parsed = new URL(value);
+
+      if (
+        !['http:', 'https:'].includes(
+          parsed.protocol,
+        )
+      ) {
+        throw new Error(
+          'Unsupported URL protocol.',
+        );
+      }
+    } catch {
+      setError(
+        'Enter a valid image URL starting with http:// or https://.',
+      );
+      return;
+    }
+
+    if (
+      (product.media || []).some(
+        (item) =>
+          String(item.url).trim() ===
+          value,
+      )
+    ) {
+      setError(
+        'This image URL is already added.',
+      );
+      return;
+    }
+
+    appendMediaUrls([value]);
+    setImageUrl('');
+    setError('');
   };
 
   /**
@@ -1172,30 +1235,87 @@ export default function ProductEditor() {
 
         {tab === 'media' && (
           <div>
-            <div className="button-row">
-              <label className="btn btn-light">
-                <ImagePlus size={17} />
+            <div className="media-source-grid">
+              <section className="media-source-card">
+                <div>
+                  <strong>
+                    Upload from device
+                  </strong>
 
-                {uploading
-                  ? 'Uploading...'
-                  : 'Upload Images'}
+                  <small>
+                    JPG, PNG, WEBP or GIF ·
+                    maximum 5 MB each
+                  </small>
+                </div>
 
-                <input
-                  hidden
-                  type="file"
-                  multiple
-                  accept="image/*"
-                  disabled={uploading}
-                  onChange={(event) => {
-                    upload(
-                      event.target.files,
-                    );
+                <label className="btn btn-light">
+                  <ImagePlus size={17} />
 
-                    event.target.value =
-                      '';
-                  }}
-                />
-              </label>
+                  {uploading
+                    ? 'Uploading...'
+                    : 'Choose Images'}
+
+                  <input
+                    hidden
+                    type="file"
+                    multiple
+                    accept="image/*"
+                    disabled={uploading}
+                    onChange={(event) => {
+                      upload(
+                        event.target.files,
+                      );
+
+                      event.target.value =
+                        '';
+                    }}
+                  />
+                </label>
+              </section>
+
+              <section className="media-source-card">
+                <div>
+                  <strong>
+                    Add from image URL
+                  </strong>
+
+                  <small>
+                    Paste a direct public image
+                    link
+                  </small>
+                </div>
+
+                <div className="media-url-row">
+                  <input
+                    type="url"
+                    placeholder="https://example.com/product.jpg"
+                    value={imageUrl}
+                    onChange={(event) =>
+                      setImageUrl(
+                        event.target.value,
+                      )
+                    }
+                    onKeyDown={(event) => {
+                      if (
+                        event.key === 'Enter'
+                      ) {
+                        event.preventDefault();
+                        addImageUrl();
+                      }
+                    }}
+                  />
+
+                  <button
+                    type="button"
+                    className="btn btn-primary"
+                    onClick={addImageUrl}
+                    disabled={!imageUrl.trim()}
+                  >
+                    <Plus size={17} />
+                    Add URL
+                  </button>
+                </div>
+              </section>
             </div>
 
             <div className="media-admin-grid">

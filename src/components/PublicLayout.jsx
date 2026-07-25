@@ -3,8 +3,10 @@ import {
   ChevronDown,
   ChevronRight,
   Facebook,
+  Globe2,
   Home,
   Instagram,
+  Linkedin,
   Mail,
   MapPin,
   Menu,
@@ -12,8 +14,11 @@ import {
   PackageSearch,
   Phone,
   ShoppingBag,
+  Send,
   Store,
+  Twitter,
   X,
+  Youtube,
 } from 'lucide-react';
 
 import {
@@ -32,6 +37,139 @@ import {
 
 import { useCart } from '../contexts/CartContext';
 import { useStore } from '../contexts/StoreContext';
+
+function normalizeSocialLinks(value) {
+  const links = Array.isArray(value)
+    ? value
+    : Object.entries(value || {}).map(
+        ([platform, url]) => ({
+          platform,
+          url,
+          active: true,
+        }),
+      );
+
+  return links
+    .map((item, index) => ({
+      id:
+        item?.id ||
+        `social-${index + 1}`,
+      platform: String(
+        item?.platform || 'Social',
+      ).trim(),
+      url: String(item?.url || '').trim(),
+      active: item?.active !== false,
+    }))
+    .filter(
+      (item) =>
+        item.active &&
+        item.platform &&
+        item.url,
+    );
+}
+
+function getSocialHref(item) {
+  const platform =
+    item.platform.toLowerCase();
+  const value = item.url.trim();
+
+  if (
+    /^(https?:\/\/|mailto:|tel:)/i.test(
+      value,
+    )
+  ) {
+    return value;
+  }
+
+  if (platform.includes('whatsapp')) {
+    return `https://wa.me/${value.replace(
+      /\D/g,
+      '',
+    )}`;
+  }
+
+  if (platform.includes('email')) {
+    return `mailto:${value}`;
+  }
+
+  if (
+    platform.includes('phone') ||
+    platform.includes('mobile')
+  ) {
+    return `tel:${value}`;
+  }
+
+  return `https://${value.replace(
+    /^\/\//,
+    '',
+  )}`;
+}
+
+function SocialIcon({
+  platform,
+  size,
+}) {
+  const name = platform.toLowerCase();
+
+  if (name.includes('facebook')) {
+    return <Facebook size={size} />;
+  }
+
+  if (name.includes('instagram')) {
+    return <Instagram size={size} />;
+  }
+
+  if (
+    name.includes('whatsapp') ||
+    name.includes('messenger')
+  ) {
+    return <MessageCircle size={size} />;
+  }
+
+  if (name.includes('youtube')) {
+    return <Youtube size={size} />;
+  }
+
+  if (name.includes('linkedin')) {
+    return <Linkedin size={size} />;
+  }
+
+  if (
+    name.includes('twitter') ||
+    name === 'x'
+  ) {
+    return <Twitter size={size} />;
+  }
+
+  if (name.includes('telegram')) {
+    return <Send size={size} />;
+  }
+
+  return <Globe2 size={size} />;
+}
+
+function SocialLinks({
+  items,
+  linkClassName,
+  iconSize,
+}) {
+  return items.map((item) => (
+    <a
+      key={item.id}
+      href={getSocialHref(item)}
+      target="_blank"
+      rel="noreferrer"
+      aria-label={item.platform}
+      title={item.platform}
+      className={linkClassName}
+    >
+      <SocialIcon
+        platform={item.platform}
+        size={iconSize}
+      />
+    </a>
+  ));
+}
 
 export default function PublicLayout() {
   const {
@@ -131,16 +269,13 @@ export default function PublicLayout() {
     [pages],
   );
 
-  const socials =
-    settings?.socialLinks || {};
-
-  const whatsappNumber =
-    socials.whatsapp
-      ? socials.whatsapp.replace(
-          /\D/g,
-          '',
-        )
-      : '';
+  const socialLinks = useMemo(
+    () =>
+      normalizeSocialLinks(
+        settings?.socialLinks,
+      ),
+    [settings?.socialLinks],
+  );
 
   const currentYear =
     new Date().getFullYear();
@@ -967,51 +1102,11 @@ export default function PublicLayout() {
               </p>
 
               <div className="flex gap-2">
-                {socials.facebook && (
-                  <a
-                    href={
-                      socials.facebook
-                    }
-                    target="_blank"
-                    rel="noreferrer"
-                    aria-label="Facebook"
-                    className="grid h-11 w-11 place-items-center rounded-xl border border-slate-200 text-slate-600 transition hover:border-[var(--secondary-color)] hover:bg-[var(--secondary-color)] hover:text-[var(--on-secondary)]"
-                  >
-                    <Facebook
-                      size={19}
-                    />
-                  </a>
-                )}
-
-                {socials.instagram && (
-                  <a
-                    href={
-                      socials.instagram
-                    }
-                    target="_blank"
-                    rel="noreferrer"
-                    aria-label="Instagram"
-                    className="grid h-11 w-11 place-items-center rounded-xl border border-slate-200 text-slate-600 transition hover:border-[var(--secondary-color)] hover:bg-[var(--secondary-color)] hover:text-[var(--on-secondary)]"
-                  >
-                    <Instagram
-                      size={19}
-                    />
-                  </a>
-                )}
-
-                {whatsappNumber && (
-                  <a
-                    href={`https://wa.me/${whatsappNumber}`}
-                    target="_blank"
-                    rel="noreferrer"
-                    aria-label="WhatsApp"
-                    className="grid h-11 w-11 place-items-center rounded-xl border border-slate-200 text-slate-600 transition hover:border-[var(--secondary-color)] hover:bg-[var(--secondary-color)] hover:text-[var(--on-secondary)]"
-                  >
-                    <MessageCircle
-                      size={19}
-                    />
-                  </a>
-                )}
+                <SocialLinks
+                  items={socialLinks}
+                  iconSize={19}
+                  linkClassName="grid h-11 w-11 place-items-center rounded-xl border border-slate-200 text-slate-600 transition hover:border-[var(--secondary-color)] hover:bg-[var(--secondary-color)] hover:text-[var(--on-secondary)]"
+                />
               </div>
             </div>
           </div>
@@ -1084,51 +1179,11 @@ export default function PublicLayout() {
               </p>
 
               <div className="flex flex-wrap gap-2">
-                {socials.facebook && (
-                  <a
-                    href={
-                      socials.facebook
-                    }
-                    target="_blank"
-                    rel="noreferrer"
-                    aria-label="Facebook"
-                    className="grid h-9 w-9 place-items-center rounded-xl border border-[var(--footer-border)] bg-[var(--footer-surface)] text-[var(--footer-text)] transition hover:-translate-y-1 hover:border-[var(--secondary-color)] hover:bg-[var(--secondary-color)] hover:text-[var(--on-secondary)] sm:h-11 sm:w-11"
-                  >
-                    <Facebook
-                      size={17}
-                    />
-                  </a>
-                )}
-
-                {socials.instagram && (
-                  <a
-                    href={
-                      socials.instagram
-                    }
-                    target="_blank"
-                    rel="noreferrer"
-                    aria-label="Instagram"
-                    className="grid h-9 w-9 place-items-center rounded-xl border border-[var(--footer-border)] bg-[var(--footer-surface)] text-[var(--footer-text)] transition hover:-translate-y-1 hover:border-[var(--secondary-color)] hover:bg-[var(--secondary-color)] hover:text-[var(--on-secondary)] sm:h-11 sm:w-11"
-                  >
-                    <Instagram
-                      size={17}
-                    />
-                  </a>
-                )}
-
-                {whatsappNumber && (
-                  <a
-                    href={`https://wa.me/${whatsappNumber}`}
-                    target="_blank"
-                    rel="noreferrer"
-                    aria-label="WhatsApp"
-                    className="grid h-9 w-9 place-items-center rounded-xl border border-[var(--footer-border)] bg-[var(--footer-surface)] text-[var(--footer-text)] transition hover:-translate-y-1 hover:border-[var(--secondary-color)] hover:bg-[var(--secondary-color)] hover:text-[var(--on-secondary)] sm:h-11 sm:w-11"
-                  >
-                    <MessageCircle
-                      size={17}
-                    />
-                  </a>
-                )}
+                <SocialLinks
+                  items={socialLinks}
+                  iconSize={17}
+                  linkClassName="grid h-9 w-9 place-items-center rounded-xl border border-[var(--footer-border)] bg-[var(--footer-surface)] text-[var(--footer-text)] transition hover:-translate-y-1 hover:border-[var(--secondary-color)] hover:bg-[var(--secondary-color)] hover:text-[var(--on-secondary)] sm:h-11 sm:w-11"
+                />
               </div>
             </div>
 
