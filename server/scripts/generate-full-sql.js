@@ -1,0 +1,14 @@
+import fs from 'node:fs/promises';
+import { admin,categories,coupons,pages,products,settings } from './seed-data.js';
+const escape=value=>`'${String(value??'').replaceAll('\\','\\\\').replaceAll("'","''")}'`;
+let sql=await fs.readFile(new URL('../sql/sharuu-fullstack-v5.sql',import.meta.url),'utf8');
+sql+='\n\n-- Demo admin and data\n';
+sql+=`INSERT INTO admin_users(id,name,email,password_hash,role,active) VALUES(${escape(admin.id)},${escape(admin.name)},${escape(admin.email)},${escape(admin.passwordHash)},${escape(admin.role)},1) ON DUPLICATE KEY UPDATE name=VALUES(name),role=VALUES(role),active=1;\n`;
+for(const item of categories)sql+=`INSERT INTO categories(id,parent_id,slug,name,active,show_in_menu,sort_order,data) VALUES(${escape(item.id)},${item.parentId?escape(item.parentId):'NULL'},${escape(item.slug)},${escape(item.name)},${item.active?1:0},${item.showInMenu?1:0},${Number(item.sortOrder||0)},${escape(JSON.stringify(item))}) ON DUPLICATE KEY UPDATE parent_id=VALUES(parent_id),slug=VALUES(slug),name=VALUES(name),active=VALUES(active),show_in_menu=VALUES(show_in_menu),sort_order=VALUES(sort_order),data=VALUES(data);\n`;
+for(const item of products)sql+=`INSERT INTO products(id,slug,product_code,category_id,subcategory_id,status,price,stock,data) VALUES(${escape(item.id)},${escape(item.slug)},${escape(item.productCode)},${escape(item.categoryId)},${item.subcategoryId?escape(item.subcategoryId):'NULL'},${escape(item.status)},${Number(item.price||0)},${Number(item.stock||0)},${escape(JSON.stringify(item))}) ON DUPLICATE KEY UPDATE slug=VALUES(slug),product_code=VALUES(product_code),category_id=VALUES(category_id),subcategory_id=VALUES(subcategory_id),status=VALUES(status),price=VALUES(price),stock=VALUES(stock),data=VALUES(data);\n`;
+for(const item of coupons)sql+=`INSERT INTO coupons(id,code,active,used_count,data) VALUES(${escape(item.id)},${escape(item.code)},${item.active?1:0},${Number(item.usedCount||0)},${escape(JSON.stringify(item))}) ON DUPLICATE KEY UPDATE code=VALUES(code),active=VALUES(active),used_count=VALUES(used_count),data=VALUES(data);\n`;
+for(const item of pages)sql+=`INSERT INTO cms_pages(id,slug,title,status,data) VALUES(${escape(item.id)},${escape(item.slug)},${escape(item.title)},${escape(item.status)},${escape(JSON.stringify(item))}) ON DUPLICATE KEY UPDATE slug=VALUES(slug),title=VALUES(title),status=VALUES(status),data=VALUES(data);\n`;
+sql+=`INSERT INTO store_settings(id,data) VALUES(1,${escape(JSON.stringify(settings))}) ON DUPLICATE KEY UPDATE data=VALUES(data);\n`;
+sql+="SELECT 'Sharuu V5 schema and demo data imported successfully' AS message;\n";
+await fs.writeFile(new URL('../sql/sharuu-fullstack-v5-complete.sql',import.meta.url),sql);
+await fs.writeFile(new URL('../../sharuu-fullstack-v5-complete.sql',import.meta.url),sql);

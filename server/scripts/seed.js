@@ -1,0 +1,11 @@
+import { pool } from '../config/db.js';
+import { admin,categories,coupons,pages,products,settings } from './seed-data.js';
+import { saveCategory,saveCoupon,savePage,saveProduct,saveSettings } from '../services/store.js';
+await pool.execute(`INSERT INTO admin_users(id,name,email,password_hash,role,active) VALUES(?,?,?,?,?,1) ON DUPLICATE KEY UPDATE name=VALUES(name),role=VALUES(role),active=1`,[admin.id,admin.name,admin.email,admin.passwordHash,admin.role]);
+for(const category of categories)await saveCategory(category);
+for(const product of products)await saveProduct(product);
+for(const coupon of coupons)await saveCoupon(coupon);
+for(const page of pages)await savePage(page);
+await saveSettings(settings);
+await pool.end();
+console.log('Sharuu demo data seeded. Admin: admin@demo.com / admin123');

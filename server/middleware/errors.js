@@ -1,0 +1,2 @@
+export function notFound(request,response){response.status(404).json({success:false,message:`Route not found: ${request.method} ${request.originalUrl}`});}
+export function errorHandler(error,_request,response,_next){console.error(error);const status=Number(error.status||(error.code==='ER_DUP_ENTRY'?409:500));response.status(status).json({success:false,message:status>=500?'The server could not complete the request.':error.message,details:error.details});}
