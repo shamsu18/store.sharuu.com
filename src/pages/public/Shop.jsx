@@ -257,6 +257,15 @@ export default function Shop() {
             will-change: transform, opacity;
           }
 
+          .mobile-category-scroll {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+          }
+
+          .mobile-category-scroll::-webkit-scrollbar {
+            display: none;
+          }
+
           @media (
             prefers-reduced-motion: reduce
           ) {
@@ -271,58 +280,62 @@ export default function Shop() {
       </style>
 
       <div className="mx-auto w-full max-w-[1180px] px-4 py-10 sm:px-6 sm:py-14">
-        {/* Six categories per row, fully visible without horizontal scrolling. */}
+        {/* Mobile-only category strip: four items are visible at a time. */}
         {topCategories.length > 0 && (
           <section
             aria-label="Product categories"
-            className="mb-3 grid grid-cols-6 gap-1.5 rounded-[24px] border border-slate-200 bg-white p-2 shadow-[0_16px_45px_rgba(15,23,42,0.06)] sm:gap-3 sm:p-3"
+            className="mb-3 rounded-[24px] border border-slate-200 bg-white p-2 shadow-[0_16px_45px_rgba(15,23,42,0.06)] md:hidden"
           >
-            <button
-              type="button"
-              onClick={() =>
-                updateParam('category', '')
-              }
-              aria-pressed={!category}
-              className={[
-                'min-w-0 rounded-xl px-1 py-2 text-center text-[9px] font-black transition sm:rounded-2xl sm:px-3 sm:py-3 sm:text-xs',
-                !category
-                  ? 'bg-[var(--secondary-color)] text-[var(--on-secondary)] shadow-sm'
-                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200',
-              ].join(' ')}
+            <div
+              className="mobile-category-scroll flex snap-x snap-mandatory gap-2 overflow-x-auto overscroll-x-contain"
             >
-              All
-            </button>
+              <button
+                type="button"
+                onClick={() =>
+                  updateParam('category', '')
+                }
+                aria-pressed={!category}
+                className={[
+                  'w-[calc((100%-1.5rem)/4)] shrink-0 snap-start rounded-xl px-1 py-2 text-center text-[10px] font-black transition',
+                  !category
+                    ? 'bg-[var(--secondary-color)] text-[var(--on-secondary)] shadow-sm'
+                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200',
+                ].join(' ')}
+              >
+                All
+              </button>
 
-            {topCategories.map(item => {
-              const isActive =
-                String(category) ===
-                String(item.id);
+              {topCategories.map(item => {
+                const isActive =
+                  String(category) ===
+                  String(item.id);
 
-              return (
-                <button
-                  key={item.id}
-                  type="button"
-                  onClick={() =>
-                    updateParam(
-                      'category',
-                      isActive ? '' : item.id,
-                    )
-                  }
-                  aria-pressed={isActive}
-                  title={item.name}
-                  className={[
-                    'min-w-0 rounded-xl px-1 py-2 text-center text-[9px] font-black transition sm:rounded-2xl sm:px-3 sm:py-3 sm:text-xs',
-                    isActive
-                      ? 'bg-[var(--secondary-color)] text-[var(--on-secondary)] shadow-sm'
-                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200',
-                  ].join(' ')}
-                >
-                  <span className="block truncate">
-                    {item.name}
-                  </span>
-                </button>
-              );
-            })}
+                return (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() =>
+                      updateParam(
+                        'category',
+                        isActive ? '' : item.id,
+                      )
+                    }
+                    aria-pressed={isActive}
+                    title={item.name}
+                    className={[
+                      'w-[calc((100%-1.5rem)/4)] shrink-0 snap-start rounded-xl px-1 py-2 text-center text-[10px] font-black transition',
+                      isActive
+                        ? 'bg-[var(--secondary-color)] text-[var(--on-secondary)] shadow-sm'
+                        : 'bg-slate-100 text-slate-600 hover:bg-slate-200',
+                    ].join(' ')}
+                  >
+                    <span className="block truncate">
+                      {item.name}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
           </section>
         )}
 
