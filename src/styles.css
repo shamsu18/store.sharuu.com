@@ -81,14 +81,38 @@
 .media-url-row{display:flex;gap:9px}
 .media-url-row input{min-width:0;flex:1;border:1px solid var(--line);border-radius:999px;background:#fff;padding:12px 16px;outline:0}
 .media-url-row .btn{flex:0 0 auto}
+.hero-image-settings{margin-top:4px;border:1px solid var(--line);border-radius:20px;background:#f8fafc;padding:18px}
+.hero-image-settings .subsection-heading{align-items:flex-start;margin-bottom:14px}
+.hero-image-settings .subsection-heading h3{margin:0}
+.hero-image-settings .subsection-heading p{margin:6px 0 0;color:var(--muted);font-size:.78rem;line-height:1.55}
+.hero-image-remove{color:var(--danger)}
+.hero-image-preview{position:relative;display:grid;min-height:220px;aspect-ratio:16/6;place-items:center;overflow:hidden;border:1px solid var(--line);border-radius:18px;background:#e2e8f0}
+.hero-image-preview>img{width:100%;height:100%;object-fit:cover}
+.hero-image-preview-label{position:absolute;right:12px;bottom:12px;border-radius:999px;background:rgba(15,23,42,.8);padding:7px 10px;color:#fff;font-size:.7rem;font-weight:800;backdrop-filter:blur(8px)}
+.hero-image-placeholder{display:flex;align-items:center;justify-content:center;flex-direction:column;gap:7px;padding:24px;text-align:center;color:#64748b}
+.hero-image-placeholder strong{color:#334155}
+.hero-image-placeholder span{font-size:.76rem}
+.hero-image-controls{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:end;margin-top:14px}
+.hero-image-controls>label:first-child{display:flex;min-width:0;flex-direction:column;gap:7px;font-size:.82rem;font-weight:700}
+.hero-image-controls input:not([type=file]){width:100%;min-width:0;border:1px solid var(--line);border-radius:12px;background:#fff;padding:12px 13px;outline:0}
+.hero-image-upload{min-height:44px}
+.hero-image-upload.disabled{cursor:not-allowed;opacity:.65}
+.hero-image-error{margin:12px 0 0}
+.hero-image-help{display:block;margin-top:10px;color:var(--muted);font-size:.74rem}
 
 @media(max-width:800px){
   .social-settings-row{grid-template-columns:1fr auto}
   .social-settings-row>label:not(.check-card){grid-column:1/-1}
   .media-source-grid{grid-template-columns:1fr}
+  .hero-image-preview{min-height:180px;aspect-ratio:16/8}
 }
 
 @media(max-width:520px){
   .media-url-row{align-items:stretch;flex-direction:column}
   .media-url-row .btn{width:100%}
+  .hero-image-settings{padding:14px}
+  .hero-image-settings .subsection-heading{align-items:stretch;flex-direction:column}
+  .hero-image-remove{align-self:flex-start}
+  .hero-image-controls{grid-template-columns:1fr}
+  .hero-image-upload{width:100%}
 }

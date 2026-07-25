@@ -451,6 +451,106 @@ function ThemePreview({ primaryColor, secondaryColor }) {
   );
 }
 
+function HeroImageField({ value, onChange }) {
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState('');
+  const [previewError, setPreviewError] = useState(false);
+  const imageSource = String(value || '').trim();
+
+  useEffect(() => {
+    setPreviewError(false);
+  }, [imageSource]);
+
+  const uploadImage = async file => {
+    if (!file) return;
+    setUploading(true);
+    setUploadError('');
+
+    try {
+      const uploaded = await api.uploadImages([file]);
+      if (!uploaded?.[0]?.url) throw new Error('The hero image could not be uploaded.');
+      onChange(uploaded[0].url);
+    } catch (error) {
+      setUploadError(error.message || 'The hero image could not be uploaded.');
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  return (
+    <section className="hero-image-settings full-field">
+      <div className="subsection-heading">
+        <div>
+          <h3>Hero Image</h3>
+          <p>Upload an image or paste its direct URL. The selected image is previewed here before saving.</p>
+        </div>
+        {imageSource && (
+          <button
+            type="button"
+            className="btn btn-light btn-small hero-image-remove"
+            onClick={() => onChange('')}
+          >
+            <Trash2 size={14} />
+            Remove
+          </button>
+        )}
+      </div>
+
+      <div className="hero-image-preview">
+        {imageSource && !previewError ? (
+          <img
+            src={imageSource}
+            alt="Current homepage hero preview"
+            onError={() => setPreviewError(true)}
+          />
+        ) : (
+          <div className="hero-image-placeholder">
+            <ImagePlus size={30} />
+            <strong>{previewError ? 'Image preview unavailable' : 'No hero image selected'}</strong>
+            <span>{previewError ? 'Check the image URL or upload another file.' : 'Your current hero image will appear here.'}</span>
+          </div>
+        )}
+        {imageSource && !previewError && <span className="hero-image-preview-label">Current preview</span>}
+      </div>
+
+      <div className="hero-image-controls">
+        <label>
+          Hero Image URL
+          <input
+            value={value || ''}
+            inputMode="url"
+            spellCheck={false}
+            placeholder="https://example.com/hero-image.jpg"
+            onChange={event => {
+              setUploadError('');
+              onChange(event.target.value);
+            }}
+          />
+        </label>
+
+        <label className={`btn btn-light hero-image-upload${uploading ? ' disabled' : ''}`}>
+          <ImagePlus size={16} />
+          {uploading ? 'Uploading...' : 'Upload Image'}
+          <input
+            hidden
+            type="file"
+            accept="image/jpeg,image/png,image/webp,image/gif"
+            disabled={uploading}
+            onChange={async event => {
+              const input = event.currentTarget;
+              await uploadImage(input.files?.[0]);
+              input.value = '';
+            }}
+          />
+        </label>
+      </div>
+
+      {uploadError && <div className="error-box hero-image-error">{uploadError}</div>}
+      <small className="hero-image-help">After choosing the image, click “Save Settings” to publish it on the homepage.</small>
+    </section>
+  );
+}
+
 
 export default function Settings() {
   const { settings,loadAdmin,adminLoaded,saveSettings }=useStore();
@@ -465,7 +565,7 @@ export default function Settings() {
   const addSocial=()=>setForm(previous=>({...previous,socialLinks:[...normalizeSocialLinks(previous.socialLinks),{id:makeId('social'),platform:'',url:'',active:true}]}));
   const removeSocial=id=>setForm(previous=>({...previous,socialLinks:normalizeSocialLinks(previous.socialLinks).filter(item=>item.id!==id)}));
   const resetThemeColors=()=>setForm(previous=>({...previous,primaryColor:DEFAULT_PRIMARY_COLOR,secondaryColor:DEFAULT_SECONDARY_COLOR}));
-  const submit=async event=>{event.preventDefault();setSaving(true);setMessage('');try{const loginSlug=String(form.adminLoginSlug||DEFAULT_ADMIN_LOGIN_SLUG).trim()||DEFAULT_ADMIN_LOGIN_SLUG;if(isReservedAdminLoginSlug(loginSlug)){setMessage('That login URL slug is reserved. Choose a different value.');return;}const socialLinks=normalizeSocialLinks(form.socialLinks).map(item=>({...item,platform:item.platform.trim(),url:item.url.trim()})).filter(item=>item.platform&&item.url);const payload={...form,socialLinks,adminLoginSlug:loginSlug,primaryColor:getSafeColor(form.primaryColor,DEFAULT_PRIMARY_COLOR),secondaryColor:getSafeColor(form.secondaryColor,DEFAULT_SECONDARY_COLOR)};await saveSettings(payload);setForm(payload);setMessage('Settings saved successfully.');}catch(error){setMessage(error.message);}finally{setSaving(false);}};
+  const submit=async event=>{event.preventDefault();setSaving(true);setMessage('');try{const loginSlug=String(form.adminLoginSlug||DEFAULT_ADMIN_LOGIN_SLUG).trim()||DEFAULT_ADMIN_LOGIN_SLUG;if(isReservedAdminLoginSlug(loginSlug)){setMessage('That login URL slug is reserved. Choose a different value.');return;}const socialLinks=normalizeSocialLinks(form.socialLinks).map(item=>({...item,platform:item.platform.trim(),url:item.url.trim()})).filter(item=>item.platform&&item.url);const payload={...form,heroImage:String(form.heroImage||'').trim(),socialLinks,adminLoginSlug:loginSlug,primaryColor:getSafeColor(form.primaryColor,DEFAULT_PRIMARY_COLOR),secondaryColor:getSafeColor(form.secondaryColor,DEFAULT_SECONDARY_COLOR)};await saveSettings(payload);setForm(payload);setMessage('Settings saved successfully.');}catch(error){setMessage(error.message);}finally{setSaving(false);}};
   const tabs=['general','homepage','footer','social','shipping','payment','admin'];
   return <form onSubmit={submit}><div className="admin-page-heading sticky-editor-heading"><div><span className="eyebrow">Store configuration</span><h1>Settings</h1><p>Control homepage, footer, social media and checkout.</p></div><button className="btn btn-primary" disabled={saving}><Save size={16}/>{saving?'Saving...':'Save Settings'}</button></div><div className="editor-tabs">{tabs.map(item=><button type="button" key={item} className={tab===item?'active':''} onClick={()=>setTab(item)}>{item}</button>)}</div>{message&&<div className="notice">{message}</div>}<section className="admin-panel editor-panel">
   {tab==='general'&&<div>
@@ -515,7 +615,28 @@ export default function Settings() {
       <label className="btn btn-light align-end"><ImagePlus size={16}/>Upload Logo<input hidden type="file" accept="image/*" onChange={event=>uploadOne(event.target.files?.[0],'logo')}/></label>
     </div>
   </div>}
-  {tab==='homepage'&&<div><div className="form-grid"><label>Announcement<input value={form.announcement||''} onChange={event=>set('announcement',event.target.value)}/></label><label>Hero Title<input value={form.heroTitle||''} onChange={event=>set('heroTitle',event.target.value)}/></label><label className="full-field">Hero Subtitle<textarea rows="2" value={form.heroSubtitle||''} onChange={event=>set('heroSubtitle',event.target.value)}/></label><label>Hero Image URL<input value={form.heroImage||''} onChange={event=>set('heroImage',event.target.value)}/></label><label>Hero Button Text<input value={form.heroButtonText||''} onChange={event=>set('heroButtonText',event.target.value)}/></label></div><div className="settings-subsection"><div className="subsection-heading"><div><h3>New Arrivals Model Gallery</h3><p>Only model/campaign images appear on the homepage, not product cards.</p></div><button type="button" className="btn btn-light" onClick={()=>set('newArrivalModels',[...(form.newArrivalModels||[]),{id:makeId('model'),title:'New Look',subtitle:'',kicker:'New season',image:'',active:true}])}><Plus size={16}/>Add Model</button></div><div className="settings-card-list">{(form.newArrivalModels||[]).map(item=><article key={item.id} className="settings-image-card"><img src={item.image||'https://placehold.co/600x800?text=Model'} alt=""/><div className="stack-form"><input placeholder="Title" value={item.title} onChange={event=>set('newArrivalModels',form.newArrivalModels.map(entry=>entry.id===item.id?{...entry,title:event.target.value}:entry))}/><input placeholder="Subtitle" value={item.subtitle||''} onChange={event=>set('newArrivalModels',form.newArrivalModels.map(entry=>entry.id===item.id?{...entry,subtitle:event.target.value}:entry))}/><input placeholder="Image URL" value={item.image} onChange={event=>set('newArrivalModels',form.newArrivalModels.map(entry=>entry.id===item.id?{...entry,image:event.target.value}:entry))}/><label className="btn btn-light btn-small"><ImagePlus size={14}/>Upload<input hidden type="file" accept="image/*" onChange={event=>uploadArrayImage(event.target.files?.[0],'newArrivalModels',item.id)}/></label><label className="check-card"><input type="checkbox" checked={item.active!==false} onChange={event=>set('newArrivalModels',form.newArrivalModels.map(entry=>entry.id===item.id?{...entry,active:event.target.checked}:entry))}/><span>Active</span></label><button type="button" className="icon-btn danger" onClick={()=>set('newArrivalModels',form.newArrivalModels.filter(entry=>entry.id!==item.id))}><Trash2/></button></div></article>)}</div></div><div className="settings-subsection"><div className="subsection-heading"><h3>Branding Banners</h3><button type="button" className="btn btn-light" onClick={()=>set('brandingBanners',[...(form.brandingBanners||[]),{id:makeId('banner'),title:'Campaign',subtitle:'',image:'',buttonText:'Explore',link:'/shop',active:true}])}><Plus size={16}/>Add Banner</button></div><div className="settings-card-list">{(form.brandingBanners||[]).map(item=><article key={item.id} className="settings-image-card"><img src={item.image||'https://placehold.co/900x600?text=Banner'} alt=""/><div className="stack-form"><input placeholder="Title" value={item.title} onChange={event=>set('brandingBanners',form.brandingBanners.map(entry=>entry.id===item.id?{...entry,title:event.target.value}:entry))}/><input placeholder="Subtitle" value={item.subtitle||''} onChange={event=>set('brandingBanners',form.brandingBanners.map(entry=>entry.id===item.id?{...entry,subtitle:event.target.value}:entry))}/><input placeholder="Image URL" value={item.image} onChange={event=>set('brandingBanners',form.brandingBanners.map(entry=>entry.id===item.id?{...entry,image:event.target.value}:entry))}/><input placeholder="Link" value={item.link||''} onChange={event=>set('brandingBanners',form.brandingBanners.map(entry=>entry.id===item.id?{...entry,link:event.target.value}:entry))}/><button type="button" className="icon-btn danger" onClick={()=>set('brandingBanners',form.brandingBanners.filter(entry=>entry.id!==item.id))}><Trash2/></button></div></article>)}</div></div></div>}
+  {tab==='homepage'&&<div>
+    <div className="form-grid">
+      <label>Announcement<input value={form.announcement||''} onChange={event=>set('announcement',event.target.value)}/></label>
+      <label>Hero Title<input value={form.heroTitle||''} onChange={event=>set('heroTitle',event.target.value)}/></label>
+      <label className="full-field">Hero Subtitle<textarea rows="2" value={form.heroSubtitle||''} onChange={event=>set('heroSubtitle',event.target.value)}/></label>
+      <label>Hero Button Text<input value={form.heroButtonText||''} onChange={event=>set('heroButtonText',event.target.value)}/></label>
+      <HeroImageField value={form.heroImage||''} onChange={value=>set('heroImage',value)}/>
+    </div>
+
+    <div className="settings-subsection">
+      <div className="subsection-heading">
+        <div><h3>New Arrivals Model Gallery</h3><p>Only model/campaign images appear on the homepage, not product cards.</p></div>
+        <button type="button" className="btn btn-light" onClick={()=>set('newArrivalModels',[...(form.newArrivalModels||[]),{id:makeId('model'),title:'New Look',subtitle:'',kicker:'New season',image:'',active:true}])}><Plus size={16}/>Add Model</button>
+      </div>
+      <div className="settings-card-list">{(form.newArrivalModels||[]).map(item=><article key={item.id} className="settings-image-card"><img src={item.image||'https://placehold.co/600x800?text=Model'} alt=""/><div className="stack-form"><input placeholder="Title" value={item.title} onChange={event=>set('newArrivalModels',form.newArrivalModels.map(entry=>entry.id===item.id?{...entry,title:event.target.value}:entry))}/><input placeholder="Subtitle" value={item.subtitle||''} onChange={event=>set('newArrivalModels',form.newArrivalModels.map(entry=>entry.id===item.id?{...entry,subtitle:event.target.value}:entry))}/><input placeholder="Image URL" value={item.image} onChange={event=>set('newArrivalModels',form.newArrivalModels.map(entry=>entry.id===item.id?{...entry,image:event.target.value}:entry))}/><label className="btn btn-light btn-small"><ImagePlus size={14}/>Upload<input hidden type="file" accept="image/*" onChange={event=>uploadArrayImage(event.target.files?.[0],'newArrivalModels',item.id)}/></label><label className="check-card"><input type="checkbox" checked={item.active!==false} onChange={event=>set('newArrivalModels',form.newArrivalModels.map(entry=>entry.id===item.id?{...entry,active:event.target.checked}:entry))}/><span>Active</span></label><button type="button" className="icon-btn danger" onClick={()=>set('newArrivalModels',form.newArrivalModels.filter(entry=>entry.id!==item.id))}><Trash2/></button></div></article>)}</div>
+    </div>
+
+    <div className="settings-subsection">
+      <div className="subsection-heading"><h3>Branding Banners</h3><button type="button" className="btn btn-light" onClick={()=>set('brandingBanners',[...(form.brandingBanners||[]),{id:makeId('banner'),title:'Campaign',subtitle:'',image:'',buttonText:'Explore',link:'/shop',active:true}])}><Plus size={16}/>Add Banner</button></div>
+      <div className="settings-card-list">{(form.brandingBanners||[]).map(item=><article key={item.id} className="settings-image-card"><img src={item.image||'https://placehold.co/900x600?text=Banner'} alt=""/><div className="stack-form"><input placeholder="Title" value={item.title} onChange={event=>set('brandingBanners',form.brandingBanners.map(entry=>entry.id===item.id?{...entry,title:event.target.value}:entry))}/><input placeholder="Subtitle" value={item.subtitle||''} onChange={event=>set('brandingBanners',form.brandingBanners.map(entry=>entry.id===item.id?{...entry,subtitle:event.target.value}:entry))}/><input placeholder="Image URL" value={item.image} onChange={event=>set('brandingBanners',form.brandingBanners.map(entry=>entry.id===item.id?{...entry,image:event.target.value}:entry))}/><input placeholder="Link" value={item.link||''} onChange={event=>set('brandingBanners',form.brandingBanners.map(entry=>entry.id===item.id?{...entry,link:event.target.value}:entry))}/><button type="button" className="icon-btn danger" onClick={()=>set('brandingBanners',form.brandingBanners.filter(entry=>entry.id!==item.id))}><Trash2/></button></div></article>)}</div>
+    </div>
+  </div>}
   {tab==='footer'&&<div className="form-grid"><label className="full-field">Footer Description<textarea rows="3" value={form.footerDescription||''} onChange={event=>set('footerDescription',event.target.value)}/></label><label>Footer Contact Title<input value={form.footerContactTitle||''} onChange={event=>set('footerContactTitle',event.target.value)}/></label><label>Copyright Text<input value={form.footerText||''} onChange={event=>set('footerText',event.target.value)}/></label><label className="full-field">Footer Bottom Text<input value={form.footerBottomText||''} onChange={event=>set('footerBottomText',event.target.value)}/></label><label>Shop Column Title<input value={form.footerColumns?.[0]?.title||'Shop'} onChange={event=>set('footerColumns',[{...(form.footerColumns?.[0]||{}),title:event.target.value},{...(form.footerColumns?.[1]||{}),title:form.footerColumns?.[1]?.title||'Information'}])}/></label><label>Information Column Title<input value={form.footerColumns?.[1]?.title||'Information'} onChange={event=>set('footerColumns',[{...(form.footerColumns?.[0]||{}),title:form.footerColumns?.[0]?.title||'Shop'},{...(form.footerColumns?.[1]||{}),title:event.target.value}])}/></label><label className="full-field">Invoice Note<input value={form.invoiceNote||''} onChange={event=>set('invoiceNote',event.target.value)}/></label></div>}
   {tab==='social'&&<div>
     <div className="subsection-heading">
